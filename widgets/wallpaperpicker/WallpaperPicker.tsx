@@ -11,7 +11,8 @@ const { wallpaper } = options;
 const cachePath = `${GLib.get_user_cache_dir()}/epik-shell/wallpapers`;
 const imageFormats = [".jpeg", ".jpg", ".webp", ".png"];
 
-function getWallpaperList(path: string) {
+function getWallpaperList() {
+  const path = wallpaper.folder.get();
   const dir = Gio.file_new_for_path(path);
   const fileEnum = dir.enumerate_children(
     "standard::name",
@@ -74,6 +75,12 @@ function cacheImage(
 }
 
 function wallpaperPicker() {
+  const wallpaperFolder = wallpaper.folder.get();
+  const wallpaperDir = Gio.file_new_for_path(wallpaperFolder);
+  if (!wallpaperDir.query_exists(null)) {
+    wallpaperDir.make_directory_with_parents(null); // Create directory if it doesn't exist
+  }
+
   ensureDirectory(cachePath);
 
   return (
@@ -119,7 +126,7 @@ function wallpaperPicker() {
           }}
         >
           <label hexpand xalign={0} label={"Wallpaper"} />
-          <label cssClasses={["directory"]} label={wallpaper.folder()} />
+          <label cssClasses={["directory"]} label={wallpaper.folder.get()} />
           <button
             tooltipText={"Clear cache"}
             onClicked={() => {
@@ -142,7 +149,7 @@ function wallpaperPicker() {
                 try {
                   const result = folderChooser.select_folder_finish(res);
                   if (result != null && result.get_path() != null) {
-                    wallpaper.folder.set(result.get_path()!);
+                    wallpaper.folder.set(result.get_path());
                     wallpaperPicker();
                   }
                 } catch (e) {
@@ -228,7 +235,6 @@ function wallpaperPicker() {
               hexpand
               halign={Gtk.Align.CENTER}
             />
-            ,
           </box>
         </Gtk.ScrolledWindow>
       </box>
