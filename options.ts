@@ -6,7 +6,7 @@ const options = mkOptions(
   `${GLib.get_user_config_dir()}/epik-shell/config.json`,
   {
     wallpaper: {
-      folder: opt(GLib.get_home_dir(), { cached: true }),
+      folder: opt(GLib.build_filenamev([GLib.get_home_dir(), "Pictures", "Wallpapers"]), { cached: true }),
       current: opt(
         await execAsync("swww query")
           .then((out) => out.split("image:")[1].trim())
