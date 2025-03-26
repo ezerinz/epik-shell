@@ -10,8 +10,8 @@ import AstalBluetooth from "gi://AstalBluetooth";
 
 function NetworkIcon() {
   const network = AstalNetwork.get_default();
-  if (!network.wifi)
-    return <image iconName={bind(network.wired, "iconName")} />;
+  if (!network.wired)
+    return <image iconName={bind(network.wifi, "iconName")} />;
 
   const icon = Variable.derive(
     [
