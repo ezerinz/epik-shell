@@ -3,6 +3,7 @@
 
 .qs-container {
   min-width: 300px;
+
   button {
     outline-color: $fg;
   }
@@ -11,13 +12,14 @@
     border-radius: $window-border-radius;
     background-color: color.adjust($fg, $alpha: -0.9);
 
-    > * {
+    >* {
       padding: 0 4px;
 
       &:first-child {
         padding: $window-padding;
       }
     }
+
     &.active {
       background-color: $accent;
       color: $bg;
@@ -27,6 +29,7 @@
   flowbox flowboxchild {
     padding: 0;
     outline-color: $fg;
+
     &:selected {
       background-color: transparent;
     }
@@ -42,17 +45,21 @@
     label {
       font-size: 1.2rem;
     }
+
     button {
       padding: 0.3rem 0.5rem;
       border-radius: $window-border-radius;
       background-color: color.adjust($fg, $alpha: -0.9);
+
       label {
         font-size: 0.95rem;
       }
+
       &:hover {
         background-color: color.adjust($fg, $alpha: -0.65);
       }
     }
+
     .powermenu {
       &:hover {
         color: $red;
@@ -67,6 +74,7 @@
       border-radius: $window-border-radius;
       background-color: color.adjust($fg, $alpha: -0.9);
     }
+
     // margin-bottom: 0.7rem;
   }
 
@@ -79,6 +87,7 @@
       padding: 1rem 0;
       background-color: transparent;
       outline-color: $fg;
+
       &:checked {
         color: $bg;
         border-radius: $window-border-radius;
@@ -88,11 +97,14 @@
 
     popover contents {
       border-radius: $window-border-radius;
+
       modelbutton {
         background-color: color.adjust($fg, $alpha: -0.9);
+
         &:first-child {
           margin-bottom: 0.3rem;
         }
+
         &:hover {
           background-color: color.adjust($fg, $alpha: -0.65);
         }
@@ -102,7 +114,8 @@
     &:hover {
       background-color: color.adjust($fg, $alpha: -0.65);
     }
-    > * {
+
+    >* {
       padding: 0.5rem;
     }
 
@@ -118,6 +131,7 @@
 
   .qs-page {
     margin: $window-padding;
+
     .button {
       padding: 0.4rem 0.8rem;
       background-color: color.adjust($fg, $alpha: -0.9);
@@ -128,7 +142,7 @@
       }
 
       &:active {
-        > * {
+        >* {
           transform: none;
         }
 
@@ -148,8 +162,9 @@
     }
   }
 
-  .wifi-page {
+  .wifi-page .bluetooth-page {
     margin: 0;
+
     .header {
       margin: $window-padding;
       margin-bottom: 0;

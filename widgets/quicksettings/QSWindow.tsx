@@ -19,6 +19,7 @@ import AstalBluetooth from "gi://AstalBluetooth";
 import BatteryPage from "./pages/BatteryPage";
 import SpeakerPage from "./pages/SpeakerPage";
 import WifiPage from "./pages/WifiPage";
+import BluetoothPage from "./pages/BluetoothPage";
 
 export const WINDOW_NAME = "quicksettings";
 export const qsPage = Variable("main");
@@ -165,7 +166,7 @@ function WifiArrowButton() {
   );
 }
 
-function WifiBluetooth() {
+function BluetoothArrowButton() {
   const bluetooth = AstalBluetooth.get_default();
   const btAdapter = bluetooth.adapter;
   const deviceConnected = Variable.derive(
@@ -177,6 +178,26 @@ function WifiBluetooth() {
       return "No device";
     },
   );
+
+  return (
+    <ArrowButton
+      icon={bind(btAdapter, "powered").as(
+        (p) => `bluetooth-${p ? "" : "disabled-"}symbolic`,
+      )}
+      title="Bluetooth"
+      subtitle={deviceConnected()}
+      onClicked={() => bluetooth.toggle()}
+      onArrowClicked={() => {
+        btAdapter.start_discovery();
+        qsPage.set("bluetooth");
+      }}
+      connection={[btAdapter, "powered"]}
+    />
+  );
+}
+
+function WifiBluetooth() {
+  const bluetooth = AstalBluetooth.get_default();
   const wifi = AstalNetwork.get_default().wifi;
 
   return (
@@ -188,16 +209,7 @@ function WifiBluetooth() {
       }}
     >
       {!!wifi && <WifiArrowButton />}
-      <ArrowButton
-        icon={bind(btAdapter, "powered").as(
-          (p) => `bluetooth-${p ? "" : "disabled-"}symbolic`,
-        )}
-        title="Bluetooth"
-        subtitle={deviceConnected()}
-        onClicked={() => bluetooth.toggle()}
-        onArrowClicked={() => console.log("Will add bt page later")}
-        connection={[btAdapter, "powered"]}
-      />
+      {!!bluetooth && <BluetoothArrowButton />}
     </box>
   );
 }
@@ -237,6 +249,7 @@ function QSWindow(_gdkmonitor: Gdk.Monitor) {
           <BatteryPage />
           <SpeakerPage />
           <WifiPage />
+          <BluetoothPage />
         </stack>
       </box>
     </PopupWindow>
