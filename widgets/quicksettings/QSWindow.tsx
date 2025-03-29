@@ -188,7 +188,6 @@ function BluetoothArrowButton() {
       subtitle={deviceConnected()}
       onClicked={() => bluetooth.toggle()}
       onArrowClicked={() => {
-        btAdapter.start_discovery();
         qsPage.set("bluetooth");
       }}
       connection={[btAdapter, "powered"]}

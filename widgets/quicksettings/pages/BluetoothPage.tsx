@@ -7,6 +7,7 @@ import { bash } from "../../../utils";
 export default function BluetoothPage() {
   const bluetooth = AstalBluetooth.get_default();
   const btAdapter = bluetooth.adapter;
+  btAdapter.start_discovery();
 
   return (
     <box
@@ -45,6 +46,7 @@ export default function BluetoothPage() {
                       if (device.connected) {
                         bash(`bluetoothctl disconnect ${device.address}`);
                       } else {
+                        bash(`bluetoothctl trust ${device.address}`);
                         bash(`bluetoothctl connect ${device.address}`);
                       }
                     }}
@@ -57,7 +59,7 @@ export default function BluetoothPage() {
                           label={`Battery: ${Math.floor(device.get_battery_percentage() * 100)}%`}
                           halign={Gtk.Align.END} // Align to the right
                           hexpand={true} // Allow the label to expand
-                          />
+                        />
                       )}
                     </box>
                   </button>
