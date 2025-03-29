@@ -52,11 +52,11 @@ export default function BluetoothPage() {
                     }}
                   >
                     <box>
-                      <image iconName={device.get_icon()} />
+                      <image iconName={device.icon} />
                       <label label={device.name} />
                       {device.connected && (
                         <label
-                          label={`Battery: ${Math.floor(device.get_battery_percentage() * 100)}%`}
+                          label={`Battery: ${Math.floor(device.batteryPercentage * 100)}%`}
                           halign={Gtk.Align.END}
                           hexpand={true}
                         />
