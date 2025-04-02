@@ -179,6 +179,12 @@ function BluetoothArrowButton() {
     },
   );
 
+  const startBluetoothDiscovery = () => {
+    if (btAdapter.powered && !btAdapter.discovering) {
+      btAdapter.start_discovery();
+    }
+  };
+
   return (
     <ArrowButton
       icon={bind(btAdapter, "powered").as(
@@ -188,6 +194,7 @@ function BluetoothArrowButton() {
       subtitle={deviceConnected()}
       onClicked={() => bluetooth.toggle()}
       onArrowClicked={() => {
+        startBluetoothDiscovery();  // Start Bluetooth discovery when arrow is clicked
         qsPage.set("bluetooth");
       }}
       connection={[btAdapter, "powered"]}

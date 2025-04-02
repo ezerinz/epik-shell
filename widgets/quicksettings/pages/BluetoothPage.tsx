@@ -7,7 +7,6 @@ import { bash } from "../../../utils";
 export default function BluetoothPage() {
   const bluetooth = AstalBluetooth.get_default();
   const btAdapter = bluetooth.adapter;
-  btAdapter.start_discovery();
 
   return (
     <box
