@@ -19,23 +19,27 @@ function WorkspaceButton({ ws, ...props }: WsButtonProps) {
     setClasses(newClasses)
   }
 
-  createEffect(() => {
-    const active = fws().id == ws.id
+  const updateClasses = (
+    focusedWorkspace: AstalHyprland.Workspace,
+    clients: AstalHyprland.Client[],
+  ) => {
+    const active = focusedWorkspace.id == ws.id
     if (active) {
       button.add_css_class("active")
     } else {
       button.remove_css_class("active")
     }
-  })
 
-  createEffect(() => {
-    clients().filter((c) => c.workspace.id)
-    const occupied = clients().some((c) => c.workspace.id == ws.id)
+    const occupied = clients.some((c) => c.workspace.id == ws.id)
     if (occupied) {
       button.add_css_class("occupied")
     } else {
       button.remove_css_class("occupied")
     }
+  }
+
+  createEffect(() => {
+    updateClasses(fws(), clients())
   })
 
   return (
