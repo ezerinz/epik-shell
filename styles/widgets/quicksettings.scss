@@ -74,6 +74,7 @@
     border-radius: $window-border-radius;
     background-color: color.adjust($fg, $alpha: -0.9);
     outline-color: $fg;
+    padding: 1rem 0;
 
     button {
       padding: 1rem 0;

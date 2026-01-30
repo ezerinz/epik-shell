@@ -1,92 +1,96 @@
-import { App, Astal, Gtk, Gdk } from "astal/gtk4";
-import TimePanelButton from "./TimePanelButton";
-import WorkspacesPanelButton from "./WorkspacesPanelButton";
-import NetworkSpeedPanelButton from "./NetworkSpeedPanelButton";
-import RecordIndicatorPanelButton from "./RecordIndicatorPanelButton";
-import LauncherPanelButton from "./LauncherPanelButton";
-import NotifPanelButton from "./NotifPanelButton";
-import QSPanelButton from "./QSPanelButton";
-import { separatorBetween } from "../../utils";
-import options from "../../options";
-import { idle } from "astal";
-import { windowAnimation } from "../../utils/hyprland";
-import { WindowProps } from "astal/gtk4/widget";
-import TrayPanelButton from "./TrayPanelButton";
+import TimePanelButton from "./TimePanelButton"
+import LauncherPanelButton from "./LauncherPanelButton"
+import { separatorBetween } from "../../utils"
+import options from "../../options"
+import { Astal, Gdk, Gtk } from "ags/gtk4"
+import { onCleanup } from "ags"
+import app from "ags/gtk4/app"
+import { idle } from "ags/time"
+import { windowAnimation } from "../../utils/hyprland"
+import WorkspacesPanelButton from "./WorkspacesPanelButton"
+import NotifPanelButton from "./NotifPanelButton"
+import NetworkSpeedPanelButton from "./NetworkSpeedPanelButton"
+import QSPanelButton from "./QSPanelButton"
+import RecordIndicatorPanelButton from "./RecordIndicatorPanelButton"
 
-const { bar } = options;
-const { start, center, end } = bar;
-
-const panelButton = {
-  launcher: () => <LauncherPanelButton />,
-  workspace: () => <WorkspacesPanelButton />,
-  time: () => <TimePanelButton />,
-  notification: () => <NotifPanelButton />,
-  network_speed: () => <NetworkSpeedPanelButton />,
-  quicksetting: () => <QSPanelButton />,
-};
+const { bar } = options
 
 function Start() {
   return (
-    <box halign={Gtk.Align.START}>
-      {start((s) => [
-        ...separatorBetween(
-          s.map((s) => panelButton[s]()),
-          Gtk.Orientation.VERTICAL,
-        ),
-        <RecordIndicatorPanelButton />,
-      ])}
+    <box $type="start">
+      {separatorBetween(
+        [LauncherPanelButton(), WorkspacesPanelButton()],
+        Gtk.Orientation.VERTICAL,
+      )}
+      <RecordIndicatorPanelButton />
     </box>
-  );
+  )
 }
 
 function Center() {
   return (
-    <box>
-      {center((c) =>
-        separatorBetween(
-          c.map((w) => panelButton[w]()),
-          Gtk.Orientation.VERTICAL,
-        ),
+    <box $type="center">
+      {separatorBetween(
+        [TimePanelButton({}), NotifPanelButton()],
+        Gtk.Orientation.VERTICAL,
       )}
     </box>
-  );
+  )
 }
 
 function End() {
   return (
-    <box halign={Gtk.Align.END}>
-      {end((e) =>
-        separatorBetween(
-          e.map((w) => panelButton[w]()),
-          Gtk.Orientation.VERTICAL,
-        ),
+    <box $type="end">
+      {separatorBetween(
+        [NetworkSpeedPanelButton(), QSPanelButton()],
+        Gtk.Orientation.VERTICAL,
       )}
     </box>
-  );
+  )
 }
 
-type BarProps = WindowProps & {
-  gdkmonitor: Gdk.Monitor;
-  animation: string;
-};
-function Bar({ gdkmonitor, ...props }: BarProps) {
-  const { TOP, LEFT, RIGHT, BOTTOM } = Astal.WindowAnchor;
-  const anc = bar.position.get() == "top" ? TOP : BOTTOM;
+type BarProps = JSX.IntrinsicElements["window"] & {
+  gdkmonitor: Gdk.Monitor
+}
+
+export default function Bar({ gdkmonitor, ...props }: BarProps) {
+  let win: Astal.Window
+  const { TOP, LEFT, RIGHT, BOTTOM } = Astal.WindowAnchor
+  const anc = bar.position.peek() == "top" ? TOP : BOTTOM
+
+  const unsubscribe = bar.position.subscribe(() => {
+    app.toggle_window("bar")
+    idle(() => {
+      win.anchor = (bar.position.peek() == "top" ? TOP : BOTTOM) | LEFT | RIGHT
+      app.toggle_window("bar")
+      windowAnimation()
+    })
+  })
+
+  onCleanup(() => {
+    // Root components (windows) are not automatically destroyed.
+    // When the monitor is disconnected from the system, this callback
+    // is run from the parent <For> which allows us to destroy the window
+    win.destroy()
+    unsubscribe()
+  })
 
   return (
     <window
       visible
-      setup={(self) => {
+      $={(self) => {
+        win = self
+
         // problem when change bar size via margin/padding live
         // https://github.com/wmww/gtk4-layer-shell/issues/60
-        self.set_default_size(1, 1);
+        self.set_default_size(1, 1)
       }}
       name={"bar"}
       namespace={"bar"}
       gdkmonitor={gdkmonitor}
       anchor={anc | LEFT | RIGHT}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
-      application={App}
+      application={app}
       {...props}
     >
       <centerbox cssClasses={["bar-container"]}>
@@ -95,20 +99,5 @@ function Bar({ gdkmonitor, ...props }: BarProps) {
         <End />
       </centerbox>
     </window>
-  );
-}
-
-export default function (gdkmonitor: Gdk.Monitor) {
-  <Bar gdkmonitor={gdkmonitor} animation="slide top" />;
-
-  bar.position.subscribe(() => {
-    App.toggle_window("bar");
-    const barWindow = App.get_window("bar")!;
-    barWindow.set_child(null);
-    App.remove_window(App.get_window("bar")!);
-    idle(() => {
-      <Bar gdkmonitor={gdkmonitor} animation="slide top" />;
-      windowAnimation();
-    });
-  });
+  )
 }

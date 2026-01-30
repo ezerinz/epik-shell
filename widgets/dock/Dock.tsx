@@ -1,164 +1,161 @@
-import { Variable } from "astal";
-import { App, Astal, Gdk, Gtk, hook } from "astal/gtk4";
-import AstalHyprland from "gi://AstalHyprland";
-import DockApps from "./DockApps";
-import options from "../../options";
-import { WindowProps } from "astal/gtk4/widget";
-import { windowAnimation } from "../../utils/hyprland";
+import AstalHyprland from "gi://AstalHyprland"
+import DockApps from "./DockApps"
+import options from "../../options"
+import {
+  createBinding,
+  createComputed,
+  createEffect,
+  createState,
+  onCleanup,
+  With,
+} from "ags"
+import { Astal, Gdk, Gtk } from "ags/gtk4"
+import app from "ags/gtk4/app"
 
-const hyprland = AstalHyprland.get_default();
-const { TOP, BOTTOM } = Astal.WindowAnchor;
-const { dock } = options;
+const hyprland = AstalHyprland.get_default()
+const { TOP, BOTTOM } = Astal.WindowAnchor
+const { dock } = options
 
+const [cursorInDock, setCursorInDock] = createState(false)
 const updateVisibility = () => {
   return (
     hyprland.get_workspace(hyprland.get_focused_workspace().id)?.get_clients()
       .length <= 0
-  );
-};
-
-export const dockVisible = Variable(updateVisibility());
-
-// transparent window to detect hover
-function DockHover(_gdkmonitor: Gdk.Monitor) {
-  const anchor = dock.position.get() == "top" ? TOP : BOTTOM;
-
-  return (
-    <window
-      visible={dockVisible((v) => !v)}
-      name={"dock-hover"}
-      namespace={"dock-hover"}
-      setup={(self) => {
-        hook(self, App, "window-toggled", (_, win) => {
-          if (win.name == "dock" && win.visible) {
-            self.visible = false;
-          }
-        });
-      }}
-      onDestroy={() => dockVisible.drop()}
-      layer={Astal.Layer.TOP}
-      anchor={anchor}
-      application={App}
-      onHoverEnter={() => {
-        App.get_window("dock")!.set_visible(true);
-      }}
-    >
-      <box
-        cssClasses={["dock-padding"]}
-        widthRequest={widthVar()}
-        heightRequest={heightVar()}
-      >
-        {/* I dont know why window/box not visible when there's no child/background-color */}
-        {/* So I give this child and set it to transparent so I can detect hover */}
-        {/* might be gtk4-layer-shell bug, idk */}
-        placeholder
-      </box>
-    </window>
-  );
+  )
 }
 
-type DockProps = WindowProps & {
-  gdkmonitor: Gdk.Monitor;
-  animation?: string;
-};
-function Dock({ gdkmonitor, ...props }: DockProps) {
-  const anchor = dock.position.get() == "top" ? TOP : BOTTOM;
+const anchor = createComputed(() => (dock.position() == "top" ? TOP : BOTTOM))
 
-  return (
-    <window
-      visible={dockVisible()}
-      name={"dock"}
-      namespace={"dock"}
-      layer={Astal.Layer.TOP}
-      anchor={anchor}
-      onDestroy={() => dockVisible.drop()}
-      setup={(self) => {
-        hook(self, App, "window-toggled", (_, win) => {
-          if (win.name == "dock-hover" && win.visible) {
-            self.visible = false;
-          }
-          if (win.name == "dock") {
-            const size = getSize(win);
-            heightVar.set(
-              getHoverHeight() > size!.height ? size!.height : getHoverHeight(),
-            );
-            widthVar.set(size!.width);
-          }
-        });
-      }}
-      onHoverLeave={() => {
-        if (!updateVisibility()) {
-          App.get_window("dock-hover")!.set_visible(true);
-        }
-      }}
-      application={App}
-      {...props}
-    >
-      <box>
-        <box hexpand />
-        <DockApps />
-        <box hexpand />
-      </box>
-    </window>
-  );
-}
-
-const widthVar = Variable(0);
-const heightVar = Variable(0);
-const getSize = (win: Gtk.Window) => win.get_child()!.get_preferred_size()[0];
+const [widthVar, setWidthVar] = createState(0)
+const [heightVar, setHeightVar] = createState(0)
+const getSize = (win: Gtk.Window) => win.get_child()!.get_preferred_size()[0]
 const getHoverHeight = () => {
-  const pos = dock.position.get() == "top" ? 0 : 2;
+  const pos = dock.position.peek() == "top" ? 0 : 2
   const hyprlandGapsOut = hyprland
     .message("getoption general:gaps_out")
     .split("\n")[0]
     .split("custom type: ")[1]
     .split(" ")
-    .map((e) => parseInt(e));
-  return hyprlandGapsOut.length >= 3
-    ? hyprlandGapsOut[pos]
-    : hyprlandGapsOut[0];
-};
-
-function setHoverSize() {
-  const dockWindow = App.get_window("dock");
-  const size = getSize(dockWindow!);
-
-  widthVar.set(size!.width);
-  heightVar.set(
-    getHoverHeight() > size!.height ? size!.height : getHoverHeight(),
-  );
+    .map((e) => parseInt(e))
+  return hyprlandGapsOut.length >= 3 ? hyprlandGapsOut[pos] : hyprlandGapsOut[0]
 }
 
-export default function (gdkmonitor: Gdk.Monitor) {
-  <Dock gdkmonitor={gdkmonitor} animation={`slide ${dock.position.get()}`} />;
-  dockVisible
-    .observe(hyprland, "notify::clients", () => {
-      return updateVisibility();
-    })
-    .observe(hyprland, "notify::focused-workspace", () => {
-      return updateVisibility();
-    });
-  DockHover(gdkmonitor);
-  setHoverSize();
+// transparent window to detect hover
+export function DockHover({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
+  createEffect(() => {
+    createBinding(hyprland, "focusedWorkspace")()
+    createBinding(hyprland, "clients")()
 
-  dock.position.subscribe(() => {
-    dockVisible.drop();
-    const dockW = App.get_window("dock")!;
-    dockW.set_child(null);
-    dockW.destroy();
-    <Dock gdkmonitor={gdkmonitor} animation={`slide ${dock.position.get()}`} />;
-    const dockHover = App.get_window("dock-hover")!;
-    dockHover.set_child(null);
-    dockHover.destroy();
-    setHoverSize();
-    dockVisible
-      .observe(hyprland, "notify::clients", () => {
-        return updateVisibility();
-      })
-      .observe(hyprland, "notify::focused-workspace", () => {
-        return updateVisibility();
-      });
-    DockHover(gdkmonitor);
-    windowAnimation();
-  });
+    if (updateVisibility()) {
+      app.get_window("dock")?.show()
+      app.get_window("dock-hover")?.hide()
+    }
+    if (!updateVisibility() && !cursorInDock.peek()) {
+      app.get_window("dock")?.hide()
+      app.get_window("dock-hover")?.show()
+    }
+  })
+
+  return (
+    <With value={anchor}>
+      {(a) => (
+        <window
+          visible={!updateVisibility()}
+          name={"dock-hover"}
+          namespace={"dock-hover"}
+          gdkmonitor={gdkmonitor}
+          $={(self) => {
+            app.connect("window-toggled", (_, win) => {
+              if (win.name == "dock" && win.visible) {
+                self.visible = false
+              }
+            })
+
+            onCleanup(() => {
+              self.destroy()
+            })
+          }}
+          layer={Astal.Layer.TOP}
+          anchor={a}
+          application={app}
+        >
+          <Gtk.EventControllerMotion
+            onEnter={(source) => {
+              source.widget.hide()
+              app.get_window("dock")?.show()
+            }}
+          />
+          <box
+            $={(self) => {
+              createEffect(() => {
+                self.widthRequest = widthVar()
+              })
+            }}
+            cssClasses={["dock-padding"]}
+            heightRequest={heightVar()}
+          >
+            {/* I dont know why window/box not visible when there's no child/background-color */}
+            {/* So I give this child and set it to transparent so I can detect hover */}
+            hehe
+          </box>
+        </window>
+      )}
+    </With>
+  )
+}
+
+type DockProps = JSX.IntrinsicElements["window"] & {
+  gdkmonitor: Gdk.Monitor
+}
+
+export function Dock({ gdkmonitor, ...props }: DockProps) {
+  return (
+    <With value={anchor}>
+      {(a) => (
+        <window
+          visible={updateVisibility()}
+          name={"dock"}
+          namespace={"dock"}
+          layer={Astal.Layer.TOP}
+          anchor={a}
+          $={(self) => {
+            self.connect("notify::visible", (win, _) => {
+              const size = getSize(win)
+              if (widthVar.peek() != size?.width) {
+                setWidthVar(size!.width)
+              }
+            })
+
+            const size = getSize(self)
+            setWidthVar(size!.width)
+            setHeightVar(getHoverHeight())
+
+            onCleanup(() => {
+              self.destroy()
+            })
+          }}
+          application={app}
+          {...props}
+        >
+          <Gtk.EventControllerMotion
+            onEnter={() => {
+              setCursorInDock(true)
+            }}
+            onLeave={(source) => {
+              setCursorInDock(false)
+              if (!updateVisibility()) {
+                source.widget.hide()
+                app.get_window("dock-hover")?.show()
+              }
+            }}
+          />
+          <box>
+            <box hexpand />
+            <DockApps />
+            <box hexpand />
+          </box>
+        </window>
+      )}
+    </With>
+  )
 }

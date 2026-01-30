@@ -1,6 +1,7 @@
-import { execAsync, GLib } from "astal";
-import { mkOptions, opt } from "./utils/option";
-import { gsettings } from "./utils";
+import { mkOptions, opt } from "./utils/option"
+import { gsettings } from "./utils"
+import GLib from "gi://GLib?version=2.0"
+import { execAsync } from "ags/process"
 
 const options = mkOptions(
   `${GLib.get_user_config_dir()}/epik-shell/config.json`,
@@ -21,9 +22,6 @@ const options = mkOptions(
     bar: {
       position: opt("top"),
       separator: opt(true),
-      start: opt(["launcher", "workspace"]),
-      center: opt(["time", "notification"]),
-      end: opt(["network_speed", "quicksetting"]),
     },
     desktop_clock: {
       position: opt<
@@ -108,6 +106,6 @@ const options = mkOptions(
       },
     },
   },
-);
+)
 
-export default options;
+export default options

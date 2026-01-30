@@ -1,51 +1,80 @@
-import { App } from "astal/gtk4";
-import AstalHyprland from "gi://AstalHyprland?version=0.1";
-import options from "../options";
+import AstalHyprland from "gi://AstalHyprland?version=0.1"
+import options from "../options"
+import app from "ags/gtk4/app"
+import { initHyprlandTheme, ThemeMode } from "./styles"
 
-const hyprland = AstalHyprland.get_default();
-const { bar } = options;
+const hyprland = AstalHyprland.get_default()
+const { bar } = options
 
 export const sendBatch = (batch: string[]) => {
   const cmd = batch
     .filter((x) => !!x)
     .map((x) => `keyword ${x}`)
-    .join("; ");
+    .join("; ")
 
-  hyprland.message(`[[BATCH]]/${cmd}`);
-};
+  hyprland.message(`[[BATCH]]/${cmd}`)
+}
+
+const animationConfig: Record<string, string> = {
+  bar: "slide top",
+  "datemenu-window": "slide top",
+  quicksettings: "slide top",
+  notifications: "slide top",
+  powermenu: "popin 90%",
+  verification: "popin 90%",
+}
+
+const windowsAnimation = () =>
+  Object.values(app.get_windows()).map(
+    (win: JSX.IntrinsicElements["window"]) => {
+      return {
+        namespace: win.namespace,
+        animation:
+          animationConfig[(win.namespace as string | undefined) ?? ""] ??
+          "popin 70%",
+      }
+    },
+  )
 
 export function windowAnimation() {
   sendBatch(
-    App.get_windows()
-      .filter(({ animation }: any) => !!animation)
-      .map(
-        ({ animation, namespace }: any) =>
-          `layerrule animation ${namespace == "dock" ? `slide ${options.dock.position.get()}` : animation == "slide top" ? `slide ${bar.position.get()}` : animation}, ${namespace}`,
-      ),
-  );
+    windowsAnimation().map(({ namespace, animation }) => {
+      const resolvedAnimation =
+        namespace === "dock"
+          ? `slide ${options.dock.position.peek()}`
+          : animation === "slide top"
+            ? `slide ${bar.position.peek()}`
+            : animation
+
+      return `layerrule animation ${resolvedAnimation}, match:namespace ${namespace}`
+    }),
+  )
 }
 
 function windowBlur() {
-  const noIgnorealpha = ["verification", "powermenu"];
+  const noIgnorealpha = ["verification", "powermenu"]
 
   sendBatch(
-    App.get_windows().flatMap(({ namespace }: any) => {
-      return [
-        `layerrule blur, ${namespace}`,
-        noIgnorealpha.some((skip) => namespace?.includes(skip))
-          ? ""
-          : `layerrule ignorealpha 0.3, ${namespace}`,
-      ];
-    }),
-  );
+    app
+      .get_windows()
+      .flatMap(({ namespace }: JSX.IntrinsicElements["window"]) => {
+        return [
+          `layerrule blur on, match:namespace ${namespace}`,
+          noIgnorealpha.some((skip) => (namespace as string).includes(skip))
+            ? ""
+            : `layerrule ignore_alpha 0.3, match:namespace ${namespace}`,
+        ]
+      }),
+  )
 }
 
 export default function initHyprland() {
-  windowAnimation();
-  windowBlur();
+  windowAnimation()
+  windowBlur()
 
   hyprland.connect("config-reloaded", () => {
-    windowAnimation();
-    windowBlur();
-  });
+    windowAnimation()
+    windowBlur()
+    initHyprlandTheme(options.theme.mode.peek() as ThemeMode)
+  })
 }

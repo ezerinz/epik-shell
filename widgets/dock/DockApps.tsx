@@ -1,23 +1,23 @@
-import { timeout, Variable } from "astal";
-import { bind } from "astal";
-import { App, Gtk } from "astal/gtk4";
-import AstalApps from "gi://AstalApps";
-import AstalHyprland from "gi://AstalHyprland";
-import AstalMpris from "gi://AstalMpris";
-import Pango from "gi://Pango";
-import options from "../../options";
-import { ButtonProps } from "astal/gtk4/widget";
+import AstalApps from "gi://AstalApps"
+import AstalHyprland from "gi://AstalHyprland"
+import AstalMpris from "gi://AstalMpris"
+import Pango from "gi://Pango"
+import options from "../../options"
+import { Gtk } from "ags/gtk4"
+import gtk4app from "ags/gtk4/app"
+import { createBinding, createComputed, For, With } from "ags"
+import { exec } from "ags/process"
 
-const hyprland = AstalHyprland.get_default();
-const application = new AstalApps.Apps();
-const iconTheme = new Gtk.IconTheme({ themeName: App.iconTheme });
+const hyprland = AstalHyprland.get_default()
+const application = new AstalApps.Apps()
+const iconTheme = new Gtk.IconTheme({ themeName: gtk4app.iconTheme })
 
-type AppButtonProps = ButtonProps & {
-  app: AstalApps.Application;
-  pinned?: boolean;
-  term: string;
-  client?: AstalHyprland.Client;
-};
+type AppButtonProps = JSX.IntrinsicElements["button"] & {
+  app: AstalApps.Application
+  pinned?: boolean
+  term: string
+  client?: AstalHyprland.Client
+}
 function AppButton({
   app,
   onClicked,
@@ -25,141 +25,143 @@ function AppButton({
   pinned = false,
   client,
 }: AppButtonProps) {
-  const substitute = {
+  const substitute: Record<string, any> = {
     Alacritty: "terminal",
     localsend: "send-to",
     "spotify-client": "org.gnome.Lollypop-spotify",
     "org.gnome.Nautilus": "system-file-manager",
-  };
+  }
 
-  const iconName = `${substitute[app.iconName] ?? app.iconName}-symbolic`;
+  const iconName = `${substitute[app.iconName] ?? app.iconName}-symbolic`
 
   return (
     <button
       onClicked={onClicked}
-      cssClasses={bind(hyprland, "focusedClient").as((fcsClient) => {
-        const classes = ["app-button"];
-        if (!fcsClient || !term || !fcsClient.class) return classes;
+      cssClasses={createBinding(hyprland, "focusedClient").as((fcsClient) => {
+        const classes = ["app-button"]
+        if (!fcsClient || !term || !fcsClient.class) return classes
 
         const isFocused = !pinned
           ? client?.address === fcsClient.address
-          : fcsClient.class.toLowerCase().includes(term.toLowerCase());
+          : fcsClient.class.toLowerCase().includes(term.toLowerCase())
 
-        if (isFocused) classes.push("focused");
-        return classes;
+        if (isFocused) classes.push("focused")
+        return classes
       })}
     >
       <overlay>
         <box cssClasses={["box"]} />
         <image
-          type="overlay"
+          $type="overlay"
           halign={Gtk.Align.CENTER}
           valign={Gtk.Align.CENTER}
           iconName={`${iconName}`}
           pixelSize={iconTheme.has_icon(`${iconName}`) ? 32 : 38}
         />
         <box
-          type="overlay"
+          $type="overlay"
           cssClasses={["indicator"]}
           valign={Gtk.Align.END}
           halign={Gtk.Align.CENTER}
-          visible={bind(hyprland, "clients").as((clients) => {
+          visible={createBinding(hyprland, "clients").as((clients) => {
             return clients
               .map((e) => e.class.toLowerCase())
-              .includes(term.toLowerCase());
+              .includes(term.toLowerCase())
           })}
         />
       </overlay>
     </button>
-  );
+  )
 }
 
 function AppsList() {
-  const pinnedApps = Variable.derive([options.dock.pinned], (p) => {
+  const pinnedApps = options.dock.pinned.as((p) => {
     return p
       .map((term) => ({
         app: application.list.find((e) => e.entry.split(".desktop")[0] == term),
         term,
       }))
-      .filter(({ app }) => app);
-  });
+      .filter(({ app }) => app)
+  })
+
+  const clients = createBinding(hyprland, "clients")
+  const filteredClients = createComputed(() => {
+    return clients()
+      .reverse()
+      .filter(
+        (c) =>
+          !options.dock
+            .pinned()
+            .map((e) => e.toLowerCase())
+            .includes(c.class.toLowerCase()),
+      )
+  })
 
   return (
-    <box spacing={6}>
-      {pinnedApps((apps) =>
-        apps.map(({ app, term }) => (
-          <AppButton
-            app={app!}
-            term={term}
-            pinned={true}
-            onClicked={() => {
-              for (const client of hyprland.get_clients()) {
-                if (client.class.toLowerCase().includes(term.toLowerCase())) {
-                  timeout(1, () => {
-                    App.get_window("dock-hover")!.set_visible(true);
-                  });
-                  return client.focus();
+    <box>
+      <box>
+        <For each={pinnedApps}>
+          {({ app, term }) => (
+            <AppButton
+              app={app!}
+              term={term}
+              pinned={true}
+              onClicked={() => {
+                for (const client of hyprland.get_clients()) {
+                  if (client.class.toLowerCase().includes(term.toLowerCase())) {
+                    return client.focus()
+                  }
                 }
-              }
-
-              app!.launch();
-            }}
-          />
-        )),
-      )}
-      {bind(hyprland, "clients").as((clients) =>
-        clients
-          .reverse()
-          .map((client) => {
-            for (const appClass of options.dock.pinned.get()) {
-              if (client.class.toLowerCase().includes(appClass.toLowerCase())) {
-                return;
-              }
+                app!.launch()
+              }}
+            />
+          )}
+        </For>
+      </box>
+      <box>
+        <For each={filteredClients}>
+          {(client: AstalHyprland.Client) => {
+            const app = application.list.find((e) =>
+              e.entry
+                .split(".desktop")[0]
+                .toLowerCase()
+                .match(client.class.toLowerCase()),
+            )
+            if (!app) {
+              return <></>
             }
-
-            for (const app of application.list) {
-              if (
-                client.class &&
-                app.entry
-                  .split(".desktop")[0]
-                  .toLowerCase()
-                  .match(client.class.toLowerCase())
-              ) {
-                return (
-                  <AppButton
-                    app={app}
-                    onClicked={() => {
-                      timeout(1, () => {
-                        App.get_window("dock-hover")!.set_visible(true);
-                      });
-                      client.focus();
-                    }}
-                    term={client.class}
-                    client={client}
-                  />
-                );
-              }
-            }
-          })
-          .filter((item) => item !== undefined),
-      )}
+            return (
+              <AppButton
+                app={app}
+                onClicked={() => {
+                  client.focus()
+                }}
+                term={client.class}
+                client={client}
+              />
+            )
+          }}
+        </For>
+      </box>
     </box>
-  );
+  )
 }
 
-function MediaPlayer({ player }) {
+function MediaPlayer({ player }: { player: AstalMpris.Player }) {
   if (!player) {
-    return <box />;
+    return <box />
   }
-  const title = bind(player, "title").as((t) => t || "Unknown Track");
-  const artist = bind(player, "artist").as((a) => a || "Unknown Artist");
-  const coverArt = bind(player, "coverArt");
+  const title = createBinding(player, "title").as((t) => t || "Unknown Track")
+  const artist = createBinding(player, "artist").as(
+    (a) => a || "Unknown Artist",
+  )
+  const coverArt = createBinding(player, "coverArt")
 
-  const playIcon = bind(player, "playbackStatus").as((s) =>
+  const playIcon = createBinding(player, "playbackStatus").as((s) =>
     s === AstalMpris.PlaybackStatus.PLAYING
       ? "media-playback-pause-symbolic"
       : "media-playback-start-symbolic",
-  );
+  )
 
   return (
     <box cssClasses={["media-player"]} hexpand>
@@ -169,20 +171,25 @@ function MediaPlayer({ player }) {
         cssClasses={["cover"]}
         file={coverArt}
       />
-      <box vertical hexpand>
+      <box orientation={Gtk.Orientation.VERTICAL} hexpand>
         <label
           ellipsize={Pango.EllipsizeMode.END}
           halign={Gtk.Align.START}
           label={title}
           maxWidthChars={15}
         />
-        <label halign={Gtk.Align.START} label={artist} />
+        <label
+          ellipsize={Pango.EllipsizeMode.END}
+          halign={Gtk.Align.START}
+          label={artist}
+          maxWidthChars={15}
+        />
       </box>
       <button
         halign={Gtk.Align.END}
         valign={Gtk.Align.CENTER}
         onClicked={() => player.play_pause()}
-        visible={bind(player, "canControl")}
+        visible={createBinding(player, "canControl")}
       >
         <image iconName={playIcon} pixelSize={18} />
       </button>
@@ -190,28 +197,29 @@ function MediaPlayer({ player }) {
         halign={Gtk.Align.END}
         valign={Gtk.Align.CENTER}
         onClicked={() => player.next()}
-        visible={bind(player, "canGoNext")}
+        visible={createBinding(player, "canGoNext")}
       >
         <image iconName="media-skip-forward-symbolic" pixelSize={24} />
       </button>
     </box>
-  );
+  )
 }
 
 export default function DockApps() {
-  const mpris = AstalMpris.get_default();
+  const mpris = AstalMpris.get_default()
+  const player = createBinding(mpris, "players").as((players) => players[0])
   return (
     <box cssClasses={["window-content", "dock-container"]} hexpand={false}>
       <AppsList />
-      {bind(mpris, "players").as((players) => (
-        <MediaPlayer player={players[0]} />
-      ))}
+      <box>
+        <With value={player}>{(p) => <MediaPlayer player={p} />}</With>
+      </box>
       <Gtk.Separator orientation={Gtk.Orientation.VERTICAL} />
       <AppButton
         app={{ iconName: "user-trash" } as AstalApps.Application}
-        onClicked={"nautilus trash:///"}
+        onClicked={() => exec("nautilus trash:///")}
         term={""}
       />
     </box>
-  );
+  )
 }

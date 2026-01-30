@@ -50,7 +50,7 @@
     .indicator {
       min-width: 4px;
       min-height: 4px;
-      border-radius: 99px;
+      border-radius: $window-border-radius;
       background-color: $accent;
       margin-bottom: 3px;
       transition: min-width 0.4s ease-in-out;

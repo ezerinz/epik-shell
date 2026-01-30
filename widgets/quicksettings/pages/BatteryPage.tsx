@@ -1,21 +1,22 @@
-import AstalPowerProfiles from "gi://AstalPowerProfiles";
-import { qsPage } from "../QSWindow";
-import { Gtk } from "astal/gtk4";
-import { bind } from "astal";
+import AstalPowerProfiles from "gi://AstalPowerProfiles"
+import { setQsPage } from "../QSWindow"
+import { Gtk } from "ags/gtk4"
+import { createBinding } from "ags"
 
 export default function BatteryPage() {
-  const powerprofiles = AstalPowerProfiles.get_default();
+  const powerprofiles = AstalPowerProfiles.get_default()
   return (
     <box
+      $type="named"
       name={"battery"}
       cssClasses={["battery-page", "qs-page"]}
-      vertical
+      orientation={Gtk.Orientation.VERTICAL}
       spacing={6}
     >
       <box hexpand={false} cssClasses={["header"]} spacing={6}>
         <button
           onClicked={() => {
-            qsPage.set("main");
+            setQsPage("main")
           }}
           iconName={"go-previous-symbolic"}
         />
@@ -25,14 +26,16 @@ export default function BatteryPage() {
       {powerprofiles.get_profiles().map((p) => {
         return (
           <button
-            cssClasses={bind(powerprofiles, "activeProfile").as((active) => {
-              const classes = ["button"];
-              active === p.profile && classes.push("active");
-              return classes;
-            })}
+            cssClasses={createBinding(powerprofiles, "activeProfile").as(
+              (active) => {
+                const classes = ["button"]
+                active === p.profile && classes.push("active")
+                return classes
+              },
+            )}
             onClicked={() => {
-              powerprofiles.set_active_profile(p.profile);
-              qsPage.set("main");
+              powerprofiles.set_active_profile(p.profile)
+              setQsPage("main")
             }}
           >
             <box>
@@ -45,8 +48,8 @@ export default function BatteryPage() {
               />
             </box>
           </button>
-        );
+        )
       })}
     </box>
-  );
+  )
 }

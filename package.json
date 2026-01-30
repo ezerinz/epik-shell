@@ -1,6 +1,10 @@
 {
-  "name": "astal-shell",
   "dependencies": {
-    "astal": "/usr/share/astal/gjs"
+    "ags": "*",
+    "gnim": "*"
+  },
+  "prettier": {
+    "semi": false,
+    "tabWidth": 2
   }
 }

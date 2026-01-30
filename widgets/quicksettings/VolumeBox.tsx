@@ -1,10 +1,10 @@
-import { bind } from "astal";
-import { Gtk } from "astal/gtk4";
-import AstalWp from "gi://AstalWp";
-import { qsPage } from "./QSWindow";
+import AstalWp from "gi://AstalWp"
+import { setQsPage } from "./QSWindow"
+import { Gtk } from "ags/gtk4"
+import { createBinding } from "ags"
 
 export default function VolumeBox() {
-  const speaker = AstalWp.get_default()?.audio!.defaultSpeaker!;
+  const speaker = AstalWp.get_default()?.audio!.defaultSpeaker!
 
   return (
     <box
@@ -12,18 +12,21 @@ export default function VolumeBox() {
       valign={Gtk.Align.CENTER}
       spacing={10}
     >
-      <image iconName={bind(speaker, "volumeIcon")} valign={Gtk.Align.CENTER} />
+      <image
+        iconName={createBinding(speaker, "volumeIcon")}
+        valign={Gtk.Align.CENTER}
+      />
       <slider
         onChangeValue={(self) => {
-          speaker.volume = self.value;
+          speaker.volume = self.value
         }}
-        value={bind(speaker, "volume")}
+        value={createBinding(speaker, "volume")}
         hexpand
       />
       <button
         iconName={"go-next-symbolic"}
-        onClicked={() => qsPage.set("speaker")}
+        onClicked={() => setQsPage("speaker")}
       />
     </box>
-  );
+  )
 }

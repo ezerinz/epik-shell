@@ -1,13 +1,13 @@
-import { ButtonProps } from "astal/gtk4/widget";
-import { App, hook, Gtk } from "astal/gtk4";
+import { Gtk } from "ags/gtk4"
+import app from "ags/gtk4/app"
 
-type PanelButtonProps = ButtonProps & {
-  child?: unknown;
-  window?: string;
-  setup?: (self: Gtk.Button) => void;
-};
+type PanelButtonProps = JSX.IntrinsicElements["button"] & {
+  children?: any
+  window?: string
+  setup?: (self: Gtk.Button) => void
+}
 export default function PanelButton({
-  child,
+  children,
   window,
   setup,
   ...props
@@ -15,35 +15,35 @@ export default function PanelButton({
   return (
     <button
       cssClasses={["panel-button"]}
-      setup={(self) => {
+      $={(self) => {
         if (window) {
-          let open = false;
+          let open = false
 
-          self.add_css_class(window);
+          self.add_css_class(window)
 
-          hook(self, App, "window-toggled", (_, win) => {
-            const winName = win.name;
-            const visible = win.visible;
+          app.connect("window-toggled", (_, win) => {
+            const winName = win.name
+            const visible = win.visible
 
-            if (winName !== window) return;
+            if (winName !== window) return
 
             if (open && !visible) {
-              open = false;
-              self.remove_css_class("active");
+              open = false
+              self.remove_css_class("active")
             }
 
             if (visible) {
-              open = true;
-              self.add_css_class("active");
+              open = true
+              self.add_css_class("active")
             }
-          });
+          })
         }
 
-        if (setup) setup(self);
+        if (setup) setup(self)
       }}
       {...props}
     >
-      {child}
+      {children}
     </button>
-  );
+  )
 }

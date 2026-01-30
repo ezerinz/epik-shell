@@ -1,38 +1,41 @@
-import { bind, Binding, Variable } from "astal";
-import { Gtk } from "astal/gtk4";
-import { ButtonProps, MenuButtonProps } from "astal/gtk4/widget";
-import GObject from "gi://GObject?version=2.0";
-import { Opt } from "../../utils/option";
+import GObject from "gi://GObject?version=2.0"
+import { Opt } from "../../utils/option"
+import { Gtk } from "ags/gtk4"
+import { Accessor, createBinding } from "ags"
 
-type QSMenuButtonProps = MenuButtonProps & {
-  child?: unknown;
-  iconName: string;
-  label: string;
-};
+type QSMenuButtonProps = JSX.IntrinsicElements["menubutton"] & {
+  children?: any
+  iconName: string
+  label: string
+  setup?: (self: Gtk.MenuButton) => void
+}
 
 export function QSMenuButton({
-  child,
+  children,
   iconName,
   label,
   setup,
 }: QSMenuButtonProps) {
   return (
-    <menubutton setup={setup} tooltipText={label} cssClasses={["qs-button"]}>
-      <image halign={Gtk.Align.CENTER} iconName={iconName} />
-      {child}
+    <menubutton
+      $={setup}
+      tooltipText={label}
+      cssClasses={["qs-button"]}
+      iconName={iconName}
+    >
+      {/* <image halign={Gtk.Align.CENTER} iconName={iconName} /> */}
+      {children}
     </menubutton>
-  );
+  )
 }
 
-type QSButtonProps<T extends GObject.Object> = ButtonProps & {
-  iconName: string | Binding<string>;
-  label: string | Binding<string>;
-  connection?: [
-    T | Variable<any> | Opt<any>,
-    keyof T | null,
-    ((arg0: any) => boolean)?,
-  ];
-};
+type QSButtonProps<T extends GObject.Object> =
+  JSX.IntrinsicElements["button"] & {
+    iconName: string | Accessor<string>
+    label: string | Accessor<string>
+    connection?: [T | Accessor<any> | Opt<any>, any, ((arg0: any) => boolean)?]
+    setup?: (self: Gtk.Button) => void
+  }
 
 export default function QSButton<T extends GObject.Object>({
   iconName,
@@ -41,31 +44,31 @@ export default function QSButton<T extends GObject.Object>({
   onClicked,
   connection,
 }: QSButtonProps<T>) {
-  function getCssClasses(): string[] | Binding<string[]> {
-    if (!connection) return ["qs-button"];
+  function getCssClasses(): string[] | Accessor<string[]> {
+    if (!connection) return ["qs-button"]
 
-    const [object, property, cond] = connection;
+    const [object, property, cond] = connection
     const computeClasses = (v: any) => {
-      const classes = ["qs-button"];
-      if (cond ? cond(v) : v) classes.push("active");
-      return classes;
-    };
+      const classes = ["qs-button"]
+      if (cond ? cond(v) : v) classes.push("active")
+      return classes
+    }
 
-    return object instanceof Variable
-      ? bind(object).as(computeClasses)
+    return object instanceof Accessor
+      ? object.as(computeClasses)
       : property != null
-        ? bind(object, property).as(computeClasses)
-        : ["qs-button"];
+        ? createBinding(object, property).as(computeClasses)
+        : ["qs-button"]
   }
 
   return (
     <button
-      setup={setup}
+      $={setup}
       cssClasses={getCssClasses()}
       onClicked={onClicked}
       tooltipText={label}
     >
       <image iconName={iconName} halign={Gtk.Align.CENTER} />
     </button>
-  );
+  )
 }

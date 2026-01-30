@@ -1,26 +1,29 @@
-import { App, Astal, Gtk, Gdk } from "astal/gtk4";
-import { range, time } from "../../utils";
-import { Binding } from "astal";
-import options from "../../options";
+import { range, time } from "../utils"
+import options from "../options"
+import { Astal, Gtk } from "ags/gtk4"
+import app from "ags/gtk4/app"
+import { Accessor, createEffect } from "ags"
 
-function Number({ shown }: { shown: string | Binding<string> }) {
+function Number({ shown }: { shown: Accessor<string> }) {
   return (
-    <box
-      cssClasses={["number-box"]}
-      valign={Gtk.Align.CENTER}
-      halign={Gtk.Align.CENTER}
-    >
+    <box class="number-box" valign={Gtk.Align.CENTER} halign={Gtk.Align.CENTER}>
       <stack
-        visibleChildName={shown}
+        $={(self) => {
+          range(9).forEach((v) => {
+            self.add_named(
+              new Gtk.Label({ name: v.toString(), label: v.toString() }),
+              v.toString(),
+            )
+          })
+          createEffect(() => {
+            self.visible_child_name = shown()
+          })
+        }}
         transitionType={Gtk.StackTransitionType.SLIDE_UP}
         transitionDuration={1000}
-      >
-        {range(9).map((v) => (
-          <label name={v.toString()} label={v.toString()} />
-        ))}
-      </stack>
+      ></stack>
     </box>
-  );
+  )
 }
 
 function UnitBox({
@@ -28,60 +31,59 @@ function UnitBox({
   shown1,
   shown2,
 }: {
-  label: string;
-  shown1: string | Binding<string>;
-  shown2: string | Binding<string>;
+  label: string
+  shown1: Accessor<string>
+  shown2: Accessor<string>
 }) {
   return (
-    <box vertical cssClasses={["unit"]}>
+    <box orientation={Gtk.Orientation.VERTICAL} class="unit">
       <box halign={Gtk.Align.CENTER} hexpand>
         <Number shown={shown1} />
         <Number shown={shown2} />
       </box>
       <label cssClasses={["box-label"]} label={label} />
     </box>
-  );
+  )
 }
 
-export default function DesktopClock(_gdkmonitor: Gdk.Monitor) {
-  const { TOP, LEFT, RIGHT, BOTTOM } = Astal.WindowAnchor;
+export default function DesktopClock() {
+  const { TOP, LEFT, RIGHT, BOTTOM } = Astal.WindowAnchor
   const handlePos = (pos: string) => {
     switch (pos) {
       case "top_left":
-        return TOP | LEFT;
+        return TOP | LEFT
       case "top":
-        return TOP;
+        return TOP
       case "top_right":
-        return TOP | RIGHT;
+        return TOP | RIGHT
       case "left":
-        return LEFT;
+        return LEFT
       case "right":
-        return RIGHT;
+        return RIGHT
       case "bottom_left":
-        return BOTTOM | LEFT;
+        return BOTTOM | LEFT
       case "bottom":
-        return BOTTOM;
+        return BOTTOM
       case "bottom_right":
-        return BOTTOM | RIGHT;
+        return BOTTOM | RIGHT
       default:
-        return undefined as unknown as Astal.WindowAnchor;
+        return undefined as unknown as Astal.WindowAnchor
     }
-  };
+  }
 
   return (
     <window
-      setup={(self) => {
-        self.set_default_size(1, 1);
+      $={(self) => {
+        self.set_default_size(1, 1)
       }}
       visible
       layer={Astal.Layer.BOTTOM}
-      gdkmonitor={_gdkmonitor}
       name={"clock"}
       namespace={"clock"}
-      anchor={options.desktop_clock.position(handlePos)}
-      application={App}
+      anchor={options.desktop_clock.position((p) => handlePos(p))}
+      application={app}
     >
-      <box cssClasses={["clock-container"]} spacing={6}>
+      <box class="clock-container" spacing={6}>
         <UnitBox
           label={"Hours"}
           shown1={time((t) => t.format("%H")!.split("")[0])}
@@ -101,5 +103,5 @@ export default function DesktopClock(_gdkmonitor: Gdk.Monitor) {
         />
       </box>
     </window>
-  );
+  )
 }

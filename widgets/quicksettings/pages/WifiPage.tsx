@@ -1,63 +1,67 @@
-import AstalNetwork from "gi://AstalNetwork";
-import { qsPage } from "../QSWindow";
-import { Gtk } from "astal/gtk4";
-import { bind } from "astal";
-import { bash } from "../../../utils";
+import AstalNetwork from "gi://AstalNetwork"
+import { setQsPage } from "../QSWindow"
+import { bash } from "../../../utils"
+import { Gtk } from "ags/gtk4"
+import { createBinding, For, With } from "ags"
 
 export default function WifiPage() {
-  const wifi = AstalNetwork.get_default().wifi;
+  const network = AstalNetwork.get_default()
+  const wifi = createBinding(network, "wifi")
+  const filterSsid = (aps: AstalNetwork.AccessPoint[]) => {
+    return aps.filter((ap) => !!ap.ssid).sort((a, b) => b.strength - a.strength)
+  }
 
   return (
     <box
+      $type="named"
       name={"wifi"}
       cssClasses={["wifi-page", "qs-page"]}
-      vertical
+      orientation={Gtk.Orientation.VERTICAL}
       spacing={6}
     >
       <box hexpand={false} cssClasses={["header"]} spacing={6}>
         <button
           onClicked={() => {
-            qsPage.set("main");
+            setQsPage("main")
           }}
           iconName={"go-previous-symbolic"}
         />
         <label label={"Wi-Fi"} hexpand xalign={0} />
       </box>
       <Gtk.Separator />
-      <Gtk.ScrolledWindow vexpand>
-        <box vertical spacing={6}>
-          {bind(wifi, "accessPoints").as((aps) => {
-            const seenSsids = new Set();
-            return aps
-              .filter((ap) => {
-                if (seenSsids.has(ap.ssid)) {
-                  return false;
-                }
-                seenSsids.add(ap.ssid);
-                return !!ap.ssid;
-              })
-              .map((accessPoint) => {
-                return (
-                  <button
-                    cssClasses={bind(wifi, "ssid").as((ssid) => {
-                      const classes = ["button"];
-                      ssid === accessPoint.ssid && classes.push("active");
-                      return classes;
-                    })}
-                    onClicked={() => {
-                      bash(`nmcli device wifi connect ${accessPoint.bssid}`);
-                    }}
-                  >
-                    <box>
-                      <image iconName={accessPoint.iconName} />
-                      <label label={accessPoint.ssid} />
-                    </box>
-                  </button>
-                );
-              });
-          })}
-        </box>
-      </Gtk.ScrolledWindow>
+      <box visible={wifi(Boolean)}>
+        <With value={wifi}>
+          {(wifi) =>
+            wifi && (
+              <Gtk.ScrolledWindow vexpand hexpand>
+                <box orientation={Gtk.Orientation.VERTICAL} spacing={6}>
+                  <For each={createBinding(wifi, "accessPoints")(filterSsid)}>
+                    {(ap: AstalNetwork.AccessPoint) => (
+                      <button
+                        cssClasses={createBinding(wifi, "activeAccessPoint").as(
+                          (activeAp) => {
+                            const classes = ["button"]
+                            activeAp == ap && classes.push("active")
+                            return classes
+                          },
+                        )}
+                        onClicked={() => {
+                          bash(`nmcli device wifi connect ${ap.bssid}`)
+                        }}
+                      >
+                        <box>
+                          <image iconName={ap.iconName} />
+                          <label label={ap.ssid} />
+                        </box>
+                      </button>
+                    )}
+                  </For>
+                </box>
+              </Gtk.ScrolledWindow>
+            )
+          }
+        </With>
+      </box>
     </box>
-  );
+  )
 }

@@ -36,9 +36,9 @@
   flowboxchild {
     outline: unset;
     padding: 0;
+    border-radius: $window-border-radius;
 
     &:selected {
-      // outline: unset;
       box-shadow: 0 0 0 2px $window-border-color;
       background-color: transparent;
     }
@@ -48,13 +48,7 @@
     background-color: color.adjust($fg, $alpha: -0.9);
     padding: 0.7rem;
     border-radius: $window-border-radius;
-    &:selected {
-      background-color: red;
-    }
 
-    &:focus {
-      outline-color: $fg;
-    }
     &:hover {
       background-color: color.adjust($fg, $alpha: -0.65);
     }

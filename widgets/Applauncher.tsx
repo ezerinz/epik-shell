@@ -1,20 +1,20 @@
-import { App, Gtk, hook, Gdk } from "astal/gtk4";
-import { Variable } from "astal";
-import Pango from "gi://Pango";
-import AstalApps from "gi://AstalApps";
-import PopupWindow from "../common/PopupWindow";
-import { Gio } from "astal";
-import options from "../../options";
-import Picture from "../common/Picture";
+import Pango from "gi://Pango"
+import AstalApps from "gi://AstalApps"
+import options from "../options"
+import app from "ags/gtk4/app"
+import { Gtk } from "ags/gtk4"
+import { createComputed, createState, For } from "ags"
+import Gio from "gi://Gio?version=2.0"
+import PopupWindow from "./common/PopupWindow"
 
-const { wallpaper } = options;
-const apps = new AstalApps.Apps();
-const text = Variable("");
+const { wallpaper } = options
 
-export const WINDOW_NAME = "applauncher";
+export const WINDOW_NAME = "applauncher"
+const apps = new AstalApps.Apps()
+const [text, setText] = createState("")
 
 function hide() {
-  App.get_window(WINDOW_NAME)?.set_visible(false);
+  app.get_window(WINDOW_NAME)?.set_visible(false)
 }
 
 function AppButton({ app }: { app: AstalApps.Application }) {
@@ -22,13 +22,13 @@ function AppButton({ app }: { app: AstalApps.Application }) {
     <button
       cssClasses={["app-button"]}
       onClicked={() => {
-        hide();
-        app.launch();
+        hide()
+        app.launch()
       }}
     >
       <box>
         <image iconName={app.iconName} />
-        <box valign={Gtk.Align.CENTER} vertical>
+        <box valign={Gtk.Align.CENTER} orientation={Gtk.Orientation.VERTICAL}>
           <label
             cssClasses={["name"]}
             ellipsize={Pango.EllipsizeMode.END}
@@ -46,62 +46,64 @@ function AppButton({ app }: { app: AstalApps.Application }) {
         </box>
       </box>
     </button>
-  );
+  )
 }
 
 function SearchEntry() {
   const onEnter = () => {
-    apps.fuzzy_query(text.get())?.[0].launch();
-    hide();
-  };
+    apps.fuzzy_query(text())?.[0].launch()
+    hide()
+  }
 
   return (
     <overlay cssClasses={["entry-overlay"]} heightRequest={100}>
       <Gtk.ScrolledWindow heightRequest={100}>
-        <Picture
+        <Gtk.Picture
           file={wallpaper.current((w) => Gio.file_new_for_path(w))}
           contentFit={Gtk.ContentFit.COVER}
           overflow={Gtk.Overflow.HIDDEN}
         />
       </Gtk.ScrolledWindow>
       <entry
-        type="overlay"
+        $type="overlay"
         vexpand
         primaryIconName={"system-search-symbolic"}
         placeholderText="Search..."
-        text={text.get()}
-        setup={(self) => {
-          hook(self, App, "window-toggled", (_, win) => {
-            const winName = win.name;
-            const visible = win.visible;
+        text={text.peek()}
+        $={(self) => {
+          app.connect("window-toggled", (_, win) => {
+            const winName = win.name
+            const visible = win.visible
 
             if (winName == WINDOW_NAME && visible) {
-              text.set("");
-              self.set_text("");
-              self.grab_focus();
+              setText("")
+              self.set_text("")
+              self.grab_focus()
             }
-          });
+          })
         }}
-        onChanged={(self) => text.set(self.text)}
+        onNotifyText={({ text }) => {
+          setText(text)
+        }}
         onActivate={onEnter}
       />
     </overlay>
-  );
+  )
 }
 
 function AppsScrolledWindow() {
-  const list = text((text) => apps.fuzzy_query(text));
+  const list = createComputed(() => apps.fuzzy_query(text()))
 
   return (
-    <Gtk.ScrolledWindow vexpand>
-      <box spacing={6} vertical>
-        {list.as((list) => list.map((app) => <AppButton app={app} />))}
+    <Gtk.ScrolledWindow vexpand={true}>
+      <box spacing={6} orientation={Gtk.Orientation.VERTICAL}>
+        <For each={list}>{(app) => <AppButton app={app} />}</For>
         <box
           halign={Gtk.Align.CENTER}
           valign={Gtk.Align.CENTER}
           cssClasses={["not-found"]}
-          vertical
-          vexpand
+          orientation={Gtk.Orientation.VERTICAL}
+          vexpand={true}
           visible={list.as((l) => l.length === 0)}
         >
           <image
@@ -112,20 +114,20 @@ function AppsScrolledWindow() {
         </box>
       </box>
     </Gtk.ScrolledWindow>
-  );
+  )
 }
 
-export default function Applauncher(_gdkmonitor: Gdk.Monitor) {
+export default function Applauncher() {
   return (
-    <PopupWindow name={WINDOW_NAME} animation="popin 80%">
+    <PopupWindow name={WINDOW_NAME}>
       <box
         cssClasses={["window-content", "applauncher-container"]}
-        vertical
+        orientation={Gtk.Orientation.VERTICAL}
         vexpand={false}
       >
         <SearchEntry />
         <AppsScrolledWindow />
       </box>
     </PopupWindow>
-  );
+  )
 }

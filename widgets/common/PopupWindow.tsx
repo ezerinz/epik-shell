@@ -1,156 +1,114 @@
-import { App, Astal, Gdk, Gtk } from "astal/gtk4";
-import { WindowProps } from "astal/gtk4/widget";
+import { onCleanup } from "ags"
+import { Astal, Gdk, Gtk } from "ags/gtk4"
+import app from "ags/gtk4/app"
+import Graphene from "gi://Graphene?version=1.0"
 
-function Padding({ winName }: { winName: string }) {
+export function Padding({
+  horizontal = false,
+  vertical = false,
+  windowName,
+}: {
+  horizontal?: boolean
+  vertical?: boolean
+  windowName: string
+}) {
   return (
-    <button
-      cssClasses={["button-padding"]}
-      canFocus={false}
-      onClicked={() => App.toggle_window(winName)}
-      hexpand
-      vexpand
-    />
-  );
+    <box hexpand={horizontal} vexpand={vertical}>
+      <Gtk.GestureClick
+        onReleased={() => {
+          app.toggle_window(windowName)
+        }}
+      />
+    </box>
+  )
 }
 
-function Layout({
-  child,
-  name,
-  position,
-}: {
-  child?: JSX.Element;
-  name: string;
-  position: string;
-}) {
+function calculateAnchor(position: string) {
+  const { TOP, RIGHT, BOTTOM, LEFT } = Astal.WindowAnchor
+
   switch (position) {
     case "top":
-      return (
-        <box vertical>
-          {child}
-          <Padding winName={name} />
-        </box>
-      );
+      return TOP | LEFT | RIGHT
     case "top_center":
-      return (
-        <box>
-          <Padding winName={name} />
-          <box vertical hexpand={false}>
-            {child}
-            <Padding winName={name} />
-          </box>
-          <Padding winName={name} />
-        </box>
-      );
+      return TOP
     case "top_left":
-      return (
-        <box>
-          <box vertical hexpand={false}>
-            {child}
-            <Padding winName={name} />
-          </box>
-          <Padding winName={name} />
-        </box>
-      );
+      return TOP | LEFT
     case "top_right":
-      return (
-        <box>
-          <Padding winName={name} />
-          <box vertical hexpand={false}>
-            {child}
-            <Padding winName={name} />
-          </box>
-        </box>
-      );
+      return TOP | RIGHT
     case "bottom":
-      return (
-        <box vertical>
-          <Padding winName={name} />
-          {child}
-        </box>
-      );
+      return BOTTOM | LEFT | RIGHT
     case "bottom_center":
-      return (
-        <box>
-          <Padding winName={name} />
-          <box vertical hexpand={false}>
-            <Padding winName={name} />
-            {child}
-          </box>
-          <Padding winName={name} />
-        </box>
-      );
+      return BOTTOM
     case "bottom_left":
-      return (
-        <box>
-          <box vertical hexpand={false}>
-            <Padding winName={name} />
-            {child}
-          </box>
-          <Padding winName={name} />
-        </box>
-      );
+      return BOTTOM | LEFT
     case "bottom_right":
-      return (
-        <box>
-          <Padding winName={name} />
-          <box vertical hexpand={false}>
-            <Padding winName={name} />
-            {child}
-          </box>
-        </box>
-      );
-    //default to center
+      return BOTTOM | RIGHT
+    case "full":
+      return TOP | BOTTOM | LEFT | RIGHT
     default:
-      return (
-        <centerbox>
-          <Padding winName={name} />
-          <centerbox orientation={Gtk.Orientation.VERTICAL}>
-            <Padding winName={name} />
-            {child}
-            <Padding winName={name} />
-          </centerbox>
-          <Padding winName={name} />
-        </centerbox>
-      );
+      return undefined
   }
 }
 
-type PopupWindowProps = WindowProps & {
-  child?: unknown;
-  name: string;
-  visible?: boolean;
-  animation?: string;
-  layout?: string;
-};
+type PopupWindowProps = JSX.IntrinsicElements["window"] & {
+  children?: any
+  name: string
+  visible?: boolean
+  animation?: string
+  layout?: string
+  setup?: (self: Astal.Window) => void
+}
 
 export default function PopupWindow({
-  child,
+  children,
   name,
   visible,
   layout = "center",
+  setup,
   ...props
 }: PopupWindowProps) {
-  const { TOP, RIGHT, BOTTOM, LEFT } = Astal.WindowAnchor;
+  let win: Astal.Window
+  onCleanup(() => {
+    win.destroy()
+  })
 
   return (
     <window
+      $={(self) => {
+        win = self
+        if (setup) setup(self)
+      }}
       visible={visible ?? false}
       name={name}
       namespace={name}
       layer={Astal.Layer.TOP}
       keymode={Astal.Keymode.EXCLUSIVE}
-      application={App}
-      anchor={TOP | BOTTOM | RIGHT | LEFT}
-      onKeyPressed={(_, keyval) => {
-        if (keyval === Gdk.KEY_Escape) {
-          App.toggle_window(name);
-        }
-      }}
+      application={app}
+      anchor={calculateAnchor(layout)}
       {...props}
     >
-      <Layout name={name} position={layout}>
-        {child}
-      </Layout>
+      <Gtk.EventControllerKey
+        onKeyPressed={({ widget: win }, key: number) => {
+          if (key === Gdk.KEY_Escape) {
+            win.hide()
+            return true
+          }
+        }}
+      />
+      <Gtk.GestureClick
+        onReleased={({ widget: win }, _, x, y) => {
+          const [, rect] = children.compute_bounds(win)
+          const position = new Graphene.Point({ x, y })
+
+          if (!rect.contains_point(position)) {
+            win.visible = false
+            return true
+          }
+          return false
+        }}
+      />
+
+      {children}
     </window>
-  );
+  )
 }
