@@ -1,14 +1,12 @@
 # Epik Shell
 
-> [!WARNING]
-> This repository is regularly updated
-
-A desktop shell based on [Astal](https://github.com/Aylur/Astal/).
+A desktop shell based on [AGS](https://github.com/Aylur/ags/).
 
 ## Screenshots
 
 ![2025-01-30_02-33-03](https://github.com/user-attachments/assets/12d46e4f-bbec-4c90-865f-3cbb36866bc9)
 ![2025-01-30_02-36-54](https://github.com/user-attachments/assets/1fa2dc55-41f8-46d6-bfac-afef2e83c32c)
+![2026-01-30_22-07-01](https://github.com/user-attachments/assets/9cf68018-11f6-4ae9-9396-6df654758d8a)
 ![2025-01-30_02-37-16](https://github.com/user-attachments/assets/d9702b1a-2816-48a5-a9f0-00b7999447dd)
 ---
 
@@ -24,9 +22,8 @@ A desktop shell based on [Astal](https://github.com/Aylur/Astal/).
 
 ### Required
 
-- `astal` (`libastal-meta` & `libastal-gjs`) or `aylurs-gtk-shell`
+- `astal` & `aylurs-gtk-shell`
 - `dart-sass`
-- `esbuild`
 
 ### Optional
 
@@ -35,11 +32,11 @@ A desktop shell based on [Astal](https://github.com/Aylur/Astal/).
 - `wf-recorder`
 - `wayshot`
 - `slurp`
-- `wl-copy`
+- `wl-clipboard`
 - `brightnessctl`
 
 ```bash
-sudo pacman -S libastal-meta libastal-gjs-git dart-sass esbuild hyprpicker swappy wf-recorder wayshot slurp wl-copy brightnessctl
+paru -S aylurs-gtk-shell-git libastal-git libastal-4-git libastal-hyprland-git libastal-battery-git libastal-bluetooth-git libastal-io-git libastal-mpris-git libastal-network-git libastal-notifd-git libastal-powerprofiles-git libastal-wireplumber-git dart-sass hyprpicker swappy wf-recorder wayshot slurp wl-clipboard brightnessctl
 ```
 
 ---
@@ -56,17 +53,9 @@ sudo pacman -S libastal-meta libastal-gjs-git dart-sass esbuild hyprpicker swapp
    ```
 3. Run
    ```bash
-   LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so gjs -m build.js
+   ags run -d .
    ```
-   You can also use ags:
-   ```bash
-   ags run --gtk4 -d .
-   ```
-   or:
-   ```bash
-   ags run --gtk4 -d <FULL-PATH-TO-SRC-FOLDER>
-   ```
-
+   
 ---
 
 ## Configuration
@@ -86,11 +75,6 @@ You can check some configurations in the [wiki](https://github.com/ezerinz/epik-
   "bar": {
     "position": "top", // "top" | "bottom"
     "separator": true,
-    // modules to show in start, center, and end of bar.
-    // available options: "launcher", "workspace", "time", "notification", "network_speed", "quicksetting"
-    "start": ["launcher", "workspace"],
-    "center": ["time", "notification"],
-    "end": ["network_speed", "quicksetting"],
   },
   "desktop_clock": {
     "position": "top_left", // "top_left" | "top" | "top_right" | "left" | "center" | "right" | "bottom_left" | "bottom" | "bottom_right"
@@ -168,7 +152,6 @@ You can check some configurations in the [wiki](https://github.com/ezerinz/epik-
 ### Theme Settings
 
 - **Theme:** `adw-gtk3`
-- **Icons:** `Colloid`
 
 ### Making GTK Apps Match Astal Theme
 
